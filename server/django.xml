@@ -1,0 +1,6 @@
+<uwsgi>
+	<socket>localhost:3031</socket>
+	<chdir> ./manage.py </chdir>
+	<pythonpath> ..</pythonpath>
+	<module>django_wsgi</module>
+</uwsgi>
