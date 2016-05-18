@@ -15,21 +15,16 @@
 //WIFI
 
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
 #include <GDBStub.h>
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
-ESP8266WiFiMulti WiFiMulti;
-struct UserData{
-  char name[32];
-  char company[32];
-};
-UserData* userData; 
+
 
 #define USE_SERIAL Serial
 const char* ssid[] = {"TungTruong","Molly coffee T1"};
 const char* password[] = {"cohangxom@321","111111111"};
-const int wifiIndex = 1;
+
+const int wifiIndex = 0;
 //ENDWIFI
 
 
@@ -40,6 +35,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // D6 sda ; D7 SCL
 
 //ENDLCD
+
+
+struct TimeLamp{
+  int hours;
+  int minutes;
+  int seconds;
+};
+TimeLamp *_timeLamp; 
+
 #define pinPassiveInfrared D4
 
 #define pinSound 5
@@ -52,11 +56,6 @@ ClapClap clapclap(pinSound,110,350,100);
 int analogSound=0;
 int stateLed = HIGH;
 
-void encoder();
-void timeClapClap();
-void getData();
-void postSensorData(int analogSound,int digitalPI);
-void getSensorMethod(int analogSound,int digitalPI);
 Ticker ticker;
 
 void setupLCD(){
@@ -68,55 +67,64 @@ void setupLCD(){
 
 
 void setupWifi(){
-    USE_SERIAL.println();
-    USE_SERIAL.println();
-    USE_SERIAL.println();
+    Serial.println();
+    Serial.println();
+    Serial.println();
     for(uint8_t t = 4; t > 0; t--) {
-      USE_SERIAL.printf("[SETUP] WAIT %d...\n", t);
-      USE_SERIAL.flush();
+      Serial.printf("[SETUP] WAIT %d...\n", t);
+      Serial.flush();
       delay(1000);
     }
-     WiFiMulti.addAP(ssid[wifiIndex], password[wifiIndex]);
+    Serial.println(ssid[wifiIndex]);
+    Serial.println(password[wifiIndex]);
+     WiFi.begin(ssid[wifiIndex], password[wifiIndex]);
+     while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print("......");
+      }
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  setupWifi();
-  setupLCD();
+ // setupWifi();
+ // setupLCD();
+ // getData();
+  
   pinMode(pinSound, INPUT_PULLUP);
   pinMode(pinLed, OUTPUT);
   pinMode(pinPassiveInfrared,INPUT_PULLUP);
   attachInterrupt(5, encoder, RISING); 
   ticker.attach(0.1,timeClapClap)  ;
-
+  ticker.attach(1.0,increaseSecond);
 }
 
+void increaseSecond(){
+  if(++_timeLamp->seconds>60){
+    _timeLamp->seconds =0;
+    if(++_timeLamp->minutes>60){
+      _timeLamp->minutes = 0;
+      if(++_timeLamp->hours>23){
+        _timeLamp->hours =0;
+      }
+    }
+  }
+  USE_SERIAL.println(">>>");
+  USE_SERIAL.println(_timeLamp->seconds);
+  
+}
 
 void loop() {
-//      timerClapClap=millis()-pretimerClapClap;
-//      if(timerClapClap>=100)
-//        {
-//          if(clapclap.checkClapClap(analogSound)){
-//            stateLed = !stateLed;
-//            pinMode(pinLed,stateLed);
-//          }
-//      
-//          timerCount ++;
-//          if(timerCount%10==0){
-//              postSensorData(analogSound,digitalRead(pinPassiveInfrared));
-//          }
-//
-//          analogSound=0;
-//          pretimerClapClap=millis();
-//          }
-      
+   
       
 }
 
 void timeClapClap(){
-  Serial.printf(">>>");
+  USE_SERIAL.println(analog);
+
   if(clapclap.checkClapClap(analogSound)){
       stateLed = !stateLed;
       pinMode(pinLed,stateLed);
@@ -152,16 +160,16 @@ void getSensorMethod(int analogSound,int digitalPI){
 void getData(){
       // wait for WiFi connection
 
-    if((WiFiMulti.run() == WL_CONNECTED)) {
+    if(WiFi.status()== WL_CONNECTED) {
         int count=0;
         HTTPClient http;
 
         USE_SERIAL.print("[HTTP] begin...\n");
         // configure traged server and url
-        //http.begin("https://192.168.1.12/test.html", "7a 9c f4 db 40 d3 62 5a 6e 21 bc 5c cc 66 c8 3e a1 45 59 38"); //HTTPS
-        //http.begin("http://jsonplaceholder.typicode.com/users/1"); //HTTP
-        http.begin("http://query.yahooapis.com/v1/public/yql?q=select%20item.condition%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D\"danang\")&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys"); //HTTP
-
+        char* url = "http://45.55.140.232:9900/api-time/datetime/?format=json";
+        Serial.printf("GET url = ");
+        Serial.println(url);
+        http.begin("http://45.55.140.232:9900/api-time/datetime/?format=json"); //HTTP
         USE_SERIAL.print("[HTTP] GET...\n");
         // start connection and send HTTP header
         int httpCode = http.GET();
@@ -185,26 +193,29 @@ void getData(){
                 USE_SERIAL.println("JSON EDIT:");
                 USE_SERIAL.println(editedJson);
               
-                 StaticJsonBuffer<500> jsonBuffer;
+                 StaticJsonBuffer<300> jsonBuffer;
 
                 JsonObject& json1 = jsonBuffer.parseObject(editedJson);
                 USE_SERIAL.println("TEST:::: " );
                 
-                const char* nameChar = json1["query"]["results"]["channel"]["item"]["condition"]["code"];
+                const int hours = json1["hours"];
+                USE_SERIAL.println(hours);
+                const int minutes = json1["minutes"];
+                const int seconds = json1["seconds"];
                 
-//
-//                strcpy(userData->name, json1["name"]);
-//                strcpy(userData->company, json1["company"]["name"]);
-                USE_SERIAL.println("FINISH:");
-                USE_SERIAL.println(nameChar);
+                _timeLamp->hours=hours;
+                _timeLamp->minutes=minutes;
+                _timeLamp->seconds=seconds;
+               
+                lcd.setCursor(0,1);
+
                  
     
 
-            }
-        } else {
-            USE_SERIAL.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            } else {
+           USE_SERIAL.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+         }
         }
-
         http.end();
     }
 
