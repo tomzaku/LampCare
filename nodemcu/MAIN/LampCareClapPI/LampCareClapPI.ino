@@ -42,8 +42,14 @@ struct TimeLamp{
   int minutes;
   int seconds;
 };
-TimeLamp *_timeLamp; 
 
+struct Weather{
+  char condition[30];
+  int temp;
+  int humidity;
+};
+TimeLamp _timeLamp; 
+Weather _weatherLamp;
 #define pinPassiveInfrared D4
 
 #define pinSound 5
@@ -56,7 +62,9 @@ ClapClap clapclap(pinSound,110,350,100);
 int analogSound=0;
 int stateLed = HIGH;
 
-Ticker ticker;
+Ticker tickerClap;
+Ticker tickerTime;
+Ticker tickerWeather;
 
 void setupLCD(){
   lcd.begin();
@@ -90,30 +98,37 @@ void setupWifi(){
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
- // setupWifi();
- // setupLCD();
- // getData();
-  
+  setupWifi();
+  setupLCD();
+  getTime();
+  getWeather();
   pinMode(pinSound, INPUT_PULLUP);
   pinMode(pinLed, OUTPUT);
   pinMode(pinPassiveInfrared,INPUT_PULLUP);
   attachInterrupt(5, encoder, RISING); 
-  ticker.attach(0.1,timeClapClap)  ;
-  ticker.attach(1.0,increaseSecond);
+  tickerClap.attach(0.1,timeClapClap)  ;
+  tickerTime.attach(1.0,increaseSecond);
 }
 
 void increaseSecond(){
-  if(++_timeLamp->seconds>60){
-    _timeLamp->seconds =0;
-    if(++_timeLamp->minutes>60){
-      _timeLamp->minutes = 0;
-      if(++_timeLamp->hours>23){
-        _timeLamp->hours =0;
+  if(++_timeLamp.seconds>59){
+    _timeLamp.seconds =0;
+    if(++_timeLamp.minutes>59){
+      _timeLamp.minutes = 0;
+      if(++_timeLamp.hours>23){
+        _timeLamp.hours =0;
       }
     }
   }
-  USE_SERIAL.println(">>>");
-  USE_SERIAL.println(_timeLamp->seconds);
+  char fulltime[30];
+  sprintf(fulltime, "%02d:%02d:%02d",_timeLamp.hours,_timeLamp.minutes ,_timeLamp.seconds);
+  lcd.setCursor(0,1);
+  lcd.print(fulltime);
+  lcd.setCursor(13,1);
+  char temp[5];
+  sprintf(temp,"%2dC",_weatherLamp.temp);
+
+  lcd.print(temp);
   
 }
 
@@ -123,8 +138,6 @@ void loop() {
 }
 
 void timeClapClap(){
-  USE_SERIAL.println(analog);
-
   if(clapclap.checkClapClap(analogSound)){
       stateLed = !stateLed;
       pinMode(pinLed,stateLed);
@@ -133,7 +146,6 @@ void timeClapClap(){
   if(timerCount%100==0){
       postSensorData(analogSound,digitalRead(pinPassiveInfrared));
   }
-
     analogSound=0;
 }
 
@@ -157,7 +169,7 @@ void getSensorMethod(int analogSound,int digitalPI){
   
 }
 
-void getData(){
+void getTime(){
       // wait for WiFi connection
 
     if(WiFi.status()== WL_CONNECTED) {
@@ -169,7 +181,7 @@ void getData(){
         char* url = "http://45.55.140.232:9900/api-time/datetime/?format=json";
         Serial.printf("GET url = ");
         Serial.println(url);
-        http.begin("http://45.55.140.232:9900/api-time/datetime/?format=json"); //HTTP
+        http.begin(url); //HTTP
         USE_SERIAL.print("[HTTP] GET...\n");
         // start connection and send HTTP header
         int httpCode = http.GET();
@@ -203,15 +215,9 @@ void getData(){
                 const int minutes = json1["minutes"];
                 const int seconds = json1["seconds"];
                 
-                _timeLamp->hours=hours;
-                _timeLamp->minutes=minutes;
-                _timeLamp->seconds=seconds;
-               
-                lcd.setCursor(0,1);
-
-                 
-    
-
+                _timeLamp.hours=hours;
+                _timeLamp.minutes=minutes;
+                _timeLamp.seconds=seconds;
             } else {
            USE_SERIAL.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
          }
@@ -226,5 +232,56 @@ void encoder()
       analogSound+=1;
 
   }
+void getWeather(){
+  
+    if(WiFi.status()== WL_CONNECTED) {
+        int count=0;
+        HTTPClient http;
+
+        USE_SERIAL.print("[HTTP] begin...\n");
+        // configure traged server and url
+        char* url = "http://45.55.140.232:9900/api-time/weather/?format=json";
+        Serial.printf("GET url = ");
+        Serial.println(url);
+        http.begin(url); //HTTP
+        USE_SERIAL.print("[HTTP] GET...\n");
+        // start connection and send HTTP header
+        int httpCode = http.GET();
+
+        // httpCode will be negative on error
+        if(httpCode > 0) {
+            // HTTP header has been send and Server response header has been handled
+            USE_SERIAL.printf("[HTTP] GET... code: %d\n", httpCode);
+
+            // file found at server
+            if(httpCode == HTTP_CODE_OK) {
+                String payload = http.getString();
+                char editedJson[payload.length()];
+                for(int i=0;i<payload.length();i++){
+                  if(payload[i]!='\n'&&payload[i]!='\t'&&payload[i]!=' '){
+                    editedJson[count++]= payload[i];
+                  }
+                }
+                editedJson[count]='\0';
+                USE_SERIAL.println("JSON EDIT:");
+                USE_SERIAL.println(editedJson);
+              
+                 StaticJsonBuffer<300> jsonBuffer;
+
+                JsonObject& json1 = jsonBuffer.parseObject(editedJson);
+                USE_SERIAL.println("TEST:::: " );
+                
+
+         
+                strcpy(_weatherLamp.condition,json1["text"]);
+                _weatherLamp.temp=json1["temp"];
+                _weatherLamp.humidity=json1["code"];
+            } else {
+           USE_SERIAL.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+         }
+        }
+        http.end();
+    }
+}
   
 

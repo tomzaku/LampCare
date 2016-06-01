@@ -10,6 +10,6 @@ def PushData(request):
 		idLampGet = request.GET['idlamp']
 		soundGet= request.GET['sound']
 		passiveInfraredGet= request.GET['passiveInfrared']
-		saveData= Sensor(idLamp=idLampGet,sound=soundGet,passiveInfrared=passiveInfraredGet)
+		saveData= Sensor(lamp=idLampGet,sound=soundGet,passiveInfrared=passiveInfraredGet)
 		saveData.save()
 	return HttpResponse("Done Upload")
