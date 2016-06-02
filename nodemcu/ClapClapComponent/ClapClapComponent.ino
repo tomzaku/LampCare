@@ -14,7 +14,7 @@
 #include "clapclap.h"
 
 #define pinSound 5
-#define pinLed D3
+#define pinLed D0
 long count = 0,pretimer=0;
 int timer=0;
 ClapClap clapclap(pinSound,200,500,100);
