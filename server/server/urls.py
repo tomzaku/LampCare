@@ -16,7 +16,8 @@ Including another URLconf
 from django.conf.urls import url,include
 from django.contrib import admin
 from django.contrib.auth.models import User
-from sensor import views
+from sensor import views as sviews
+from lcdRGB import views as lviews
 from django.http import HttpResponse
 from rest_framework import routers, serializers, viewsets
 from sensor.serializer import SensorViewSet
@@ -51,7 +52,9 @@ def main(reponse):
 	return HttpResponse("MAIN")
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^api-post/',views.PushData),
+    url(r'^api-post/',sviews.PushData),
+    url(r'updateRGB/',lviews.UpdateRGB),
+    url(r'getRGB/',lviews.GetRGB),
     url(r'^$',main),
     url(r'^api', include(router.urls)),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),

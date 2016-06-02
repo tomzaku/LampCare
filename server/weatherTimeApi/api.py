@@ -30,7 +30,7 @@ class GetWeather(views.APIView):
     yql_url = baseurl + urllib.urlencode({'q':yql_query}) + "&format=json"
     print yql_url
     data = requests.get(yql_url).json();
-    result = data["query"]['results']['channel']['item']['condition']
+    result = data["query"]['results']['channel']
     return Response(result,200);
 
 class GetForecast(views.APIView):

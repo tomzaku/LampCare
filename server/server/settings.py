@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'sensor',
     'lamp',
     'weatherTimeApi',
+    'lcdRGB',
 ]
 
 MIDDLEWARE_CLASSES = [
