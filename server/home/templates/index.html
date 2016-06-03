@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Basic usage</title>
+</head>
+<body>
+
+
+<script src="server/static/js/jscolor.js"></script>
+<h1>Welcome To LampCare</h1>
+<h3>This website to control light your LampCare </h3>
+<h4>You had slept 4 hour</h4>
+
+
+Set Color LampCare: <input class="jscolor" value="ab2567" id ="getColorInput">
+
+<button onclick="changeColorHex()">Enable Color Lamp</button>
+
+<div style="background: red;width: 100px;height: 100px;">
+ 
+</div>
+<button onclick="changeColorRGB(255,0,0)">Red</button>
+
+
+
+<div style="background: green;width: 100px;height: 100px;">
+</div>
+
+<button onclick="changeColorRGB(0,255,0)">Green</button>
+<div style="background: blue;width: 100px;height: 100px;">
+</div>
+<button onclick="changeColorRGB(0,0,255)">Blue</button>
+<br>
+<button onclick="changeColorRGB(0,0,256)">7Color</button>
+<br>
+<button onclick="changeColorRGB(0,0,0)">TurnOff</button>
+
+<script>
+	function hexToRgb(hex) {
+		console.log(">>>>>>>>>>>>>>")
+	    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	    return result ? {
+	        r: parseInt(result[1], 16),
+	        g: parseInt(result[2], 16),
+	        b: parseInt(result[3], 16)
+	    }:null
+	} 
+	function changeColorRGB(red,green,blue){
+    	var url = "http://45.55.140.232:9900/updateRGB/?id=0&red="+red
+    	+ "&green="+green+"&blue="+blue;
+    	var win = window.open(url,'_blank');
+	  	win.focus();
+	}
+    function changeColorHex(){
+    	var hex1 = document.getElementById("getColorInput").value;
+    	
+    	var url = "http://45.55.140.232:9900/updateRGB/?id=0&red="+hexToRgb("#"+hex1).r
+    	+ "&green="+hexToRgb("#"+hex1).g+"&blue="+hexToRgb("#"+hex1).b;
+    	var win = window.open(url,'_blank');
+	  	win.focus();
+
+    
+    }
+
+</script>
+
+</body>
+
+</html>

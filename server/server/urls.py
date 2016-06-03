@@ -22,7 +22,7 @@ from django.http import HttpResponse
 from rest_framework import routers, serializers, viewsets
 from sensor.serializer import SensorViewSet
 import weatherTimeApi.urls as WTurls
-
+from home import views as hview
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 router.register(r'sensor', SensorViewSet)
@@ -55,7 +55,7 @@ urlpatterns = [
     url(r'^api-post/',sviews.PushData),
     url(r'updateRGB/',lviews.UpdateRGB),
     url(r'getRGB/',lviews.GetRGB),
-    url(r'^$',main),
+    url(r'^$',hview.indexPage),
     url(r'^api', include(router.urls)),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'api-time/',include(WTurls))
